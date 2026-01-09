@@ -1,0 +1,12 @@
+1. Logging in...
+Login successful. Token received.
+
+2. Submitting Report with new fields...
+Report submitted successfully!
+Response: {
+  message: 'Report submitted successfully',
+  reportId: '696181fb218aa39c322beff1'
+}
+
+3. Verifying Report Data...
+Report found in fetch list.

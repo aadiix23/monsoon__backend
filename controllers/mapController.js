@@ -130,15 +130,19 @@ exports.getMapHotspots = async (req, res) => {
 
 exports.createReport = async (req, res) => {
     try {
-        const { lat, lon, severity, description, imageUrl } = req.body;
+        const { lat, lon, severity, description, imageUrl, reportType, eventDate, eventTime } = req.body;
 
         // Validation
-        if (lat === undefined || lon === undefined || !severity) {
-            return res.status(400).json({ error: 'Latitude, Longitude, and Severity are required' });
+        if (lat === undefined || lon === undefined || !severity || !reportType || !eventDate || !eventTime) {
+            return res.status(400).json({ error: 'Latitude, Longitude, Severity, Report Type, Date, and Time are required' });
         }
 
         if (!['Low', 'Medium', 'High'].includes(severity)) {
             return res.status(400).json({ error: 'Severity must be one of: Low, Medium, High' });
+        }
+
+        if (!['Drainage Block', 'Water Log'].includes(reportType)) {
+            return res.status(400).json({ error: 'Report Type must be one of: Drainage Block, Water Log' });
         }
 
         const newReport = new Report({
@@ -149,7 +153,10 @@ exports.createReport = async (req, res) => {
             },
             severity,
             description,
-            imageUrl
+            imageUrl,
+            reportType,
+            eventDate,
+            eventTime
         });
 
         await newReport.save();
