@@ -34,8 +34,10 @@ connectDB();
 // Routes
 const authRoutes = require('./routes/auth');
 const weatherRoutes = require('./routes/weather');
+const mapRoutes = require('./routes/map');
 app.use('/auth', authRoutes);
 app.use('/weather', weatherRoutes);
+app.use('/map', mapRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
