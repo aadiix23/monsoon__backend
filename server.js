@@ -10,6 +10,7 @@ const app = express();
 // Middleware
 app.use(express.json());
 app.use(cors());
+app.use('/uploads', express.static('uploads'));
 
 // Database Connection
 const connectDB = async () => {
@@ -35,9 +36,11 @@ connectDB();
 const authRoutes = require('./routes/auth');
 const weatherRoutes = require('./routes/weather');
 const mapRoutes = require('./routes/map');
+const uploadRoutes = require('./routes/upload');
 app.use('/auth', authRoutes);
 app.use('/weather', weatherRoutes);
 app.use('/map', mapRoutes);
+app.use('/upload', uploadRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

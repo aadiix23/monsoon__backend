@@ -1,0 +1,14 @@
+[dotenv@17.2.3] injecting env (3) from .env -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+Server running on port 5000
+MongoDB Connected
+Error submitting report: TypeError: Cannot read properties of undefined (reading 'id')
+    at exports.createReport (/home/aadiix/monsoon__backend/controllers/mapController.js:145:28)
+    at Layer.handleRequest (/home/aadiix/monsoon__backend/node_modules/router/lib/layer.js:152:17)
+    at next (/home/aadiix/monsoon__backend/node_modules/router/lib/route.js:157:13)
+    at module.exports (/home/aadiix/monsoon__backend/middleware/auth.js:16:9)
+    at Layer.handleRequest (/home/aadiix/monsoon__backend/node_modules/router/lib/layer.js:152:17)
+    at next (/home/aadiix/monsoon__backend/node_modules/router/lib/route.js:157:13)
+    at Route.dispatch (/home/aadiix/monsoon__backend/node_modules/router/lib/route.js:117:3)
+    at handle (/home/aadiix/monsoon__backend/node_modules/router/index.js:435:11)
+    at Layer.handleRequest (/home/aadiix/monsoon__backend/node_modules/router/lib/layer.js:152:17)
+    at /home/aadiix/monsoon__backend/node_modules/router/index.js:295:15

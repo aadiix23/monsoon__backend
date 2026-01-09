@@ -8,16 +8,14 @@ exports.getMapReports = async (req, res) => {
             type: "FeatureCollection",
             features: reports.map(report => ({
                 type: "Feature",
-                geometry: {
-                    type: "Point",
-                    coordinates: [report.location.lon, report.location.lat] // GeoJSON is [lon, lat]
-                },
+                geometry: report.location, // Already GeoJSON
                 properties: {
                     id: report._id,
                     severity: report.severity,
                     imageUrl: report.imageUrl,
                     description: report.description,
-                    timestamp: report.createdAt
+                    timestamp: report.createdAt,
+                    user: report.user // Optional: Expose user ID
                 }
             }))
         };
@@ -54,22 +52,20 @@ exports.getMapHotspots = async (req, res) => {
         const clusters = [];
 
         for (const report of reports) {
+            // Extract lat/lon from GeoJSON coordinates [lon, lat]
+            const rLon = report.location.coordinates[0];
+            const rLat = report.location.coordinates[1];
+
             let addedToCluster = false;
 
             for (const cluster of clusters) {
-                // Check distance to cluster centroid (or simply the first point for simplicity)
-                // For better accuracy, we should check against the rolling centroid, 
-                // but checking against the first point is O(N*K) and sufficient for simple hotspots.
-                const dist = getDistance(
-                    report.location.lat,
-                    report.location.lon,
-                    cluster.points[0].location.lat,
-                    cluster.points[0].location.lon
-                );
+                const cLon = cluster.points[0].location.coordinates[0];
+                const cLat = cluster.points[0].location.coordinates[1];
+
+                const dist = getDistance(rLat, rLon, cLat, cLon);
 
                 if (dist <= CLUSTER_RADIUS_METERS) {
                     cluster.points.push(report);
-                    // Update severity logic if needed (e.g. max severity of reports)
                     addedToCluster = true;
                     break;
                 }
@@ -91,8 +87,8 @@ exports.getMapHotspots = async (req, res) => {
             let hasHighSeverity = false;
 
             for (const p of cluster.points) {
-                sumLat += p.location.lat;
-                sumLon += p.location.lon;
+                sumLon += p.location.coordinates[0];
+                sumLat += p.location.coordinates[1];
                 if (p.severity === 'High') hasHighSeverity = true;
             }
 
@@ -106,9 +102,6 @@ exports.getMapHotspots = async (req, res) => {
             } else if (count >= 3) {
                 severity = 'Medium';
             }
-
-            // Only return clusters that effectively form a "hotspot" (e.g. > 1 report or High severity)
-            // Or return all. Let's return all but severity denotes importance.
 
             return {
                 type: "Feature",
@@ -124,10 +117,6 @@ exports.getMapHotspots = async (req, res) => {
             };
         });
 
-        // Filter out single-report clusters that are Low severity to reduce noise?
-        // User asked for "identifies hotspots", implying significant activity.
-        // Let's keep data clean: return all, frontend can filter.
-
         res.json({
             type: "FeatureCollection",
             features: hotspots
@@ -136,5 +125,42 @@ exports.getMapHotspots = async (req, res) => {
     } catch (err) {
         console.error('Error fetching hotspots:', err);
         res.status(500).json({ error: 'Server error fetching hotspots' });
+    }
+};
+
+exports.createReport = async (req, res) => {
+    try {
+        const { lat, lon, severity, description, imageUrl } = req.body;
+
+        // Validation
+        if (lat === undefined || lon === undefined || !severity) {
+            return res.status(400).json({ error: 'Latitude, Longitude, and Severity are required' });
+        }
+
+        if (!['Low', 'Medium', 'High'].includes(severity)) {
+            return res.status(400).json({ error: 'Severity must be one of: Low, Medium, High' });
+        }
+
+        const newReport = new Report({
+            user: req.user.id, // Authenticated User ID
+            location: {
+                type: 'Point',
+                coordinates: [lon, lat] // [lon, lat] for GeoJSON
+            },
+            severity,
+            description,
+            imageUrl
+        });
+
+        await newReport.save();
+
+        res.status(201).json({
+            message: 'Report submitted successfully',
+            reportId: newReport._id
+        });
+
+    } catch (err) {
+        console.error('Error submitting report:', err);
+        res.status(500).json({ error: 'Server error submitting report' });
     }
 };
