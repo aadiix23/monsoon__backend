@@ -1,35 +1,60 @@
 const Report = require('../models/Report');
 const User = require('../models/User');
 
+// Helper to clear redundancy
+const fetchAndFormatReports = async (filter = {}, excludeImage = false) => {
+    const reports = await Report.find(filter);
+
+    return {
+        type: "FeatureCollection",
+        features: reports.map(report => ({
+            type: "Feature",
+            geometry: report.location, // Already GeoJSON
+            properties: {
+                id: report._id,
+                severity: report.severity,
+                imageUrl: excludeImage ? undefined : report.imageUrl,
+                description: report.description,
+                reportType: report.reportType,
+                eventDate: report.eventDate,
+                eventTime: report.eventTime,
+                userName: report.userName,
+                userPhone: report.userPhone,
+                timestamp: report.createdAt,
+                user: report.user // Optional: Expose user ID
+            }
+        }))
+    };
+};
+
 exports.getMapReports = async (req, res) => {
     try {
-        const reports = await Report.find();
-
-        const geoJson = {
-            type: "FeatureCollection",
-            features: reports.map(report => ({
-                type: "Feature",
-                geometry: report.location, // Already GeoJSON
-                properties: {
-                    id: report._id,
-                    severity: report.severity,
-                    imageUrl: report.imageUrl,
-                    description: report.description,
-                    reportType: report.reportType,
-                    eventDate: report.eventDate,
-                    eventTime: report.eventTime,
-                    userName: report.userName,
-                    userPhone: report.userPhone,
-                    timestamp: report.createdAt,
-                    user: report.user // Optional: Expose user ID
-                }
-            }))
-        };
-
+        const geoJson = await fetchAndFormatReports();
         res.json(geoJson);
     } catch (err) {
         console.error('Error fetching map reports:', err);
         res.status(500).json({ error: 'Server error fetching reports' });
+    }
+};
+
+exports.getWaterLogReports = async (req, res) => {
+    try {
+        // Pass true to exclude imageUrl
+        const geoJson = await fetchAndFormatReports({ reportType: 'Water Log' }, true);
+        res.json(geoJson);
+    } catch (err) {
+        console.error('Error fetching water log reports:', err);
+        res.status(500).json({ error: 'Server error fetching water log reports' });
+    }
+};
+
+exports.getDrainageBlockReports = async (req, res) => {
+    try {
+        const geoJson = await fetchAndFormatReports({ reportType: 'Drainage Block' });
+        res.json(geoJson);
+    } catch (err) {
+        console.error('Error fetching drainage block reports:', err);
+        res.status(500).json({ error: 'Server error fetching drainage block reports' });
     }
 };
 

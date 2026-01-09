@@ -1,0 +1,9 @@
+Testing Water Log API...
+Status: 200
+Features count: 10
+SUCCESS: All reports are Water Log and have NO imageUrl
+
+Testing Drainage Block API...
+Status: 200
+Features count: 1
+SUCCESS: All reports are Drainage Block
