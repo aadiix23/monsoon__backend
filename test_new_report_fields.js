@@ -66,6 +66,8 @@ async function testReportSubmission() {
 
         if (submittedReport) {
             console.log('Report found in fetch list.');
+            console.log('Saved User Name:', submittedReport.properties.userName);
+            console.log('Saved User Phone:', submittedReport.properties.userPhone);
             // Note: The getMapReports might not expose the new fields in properties yet unless we updated it.
             // Let's check mapController.getMapReports to see if it exposes them.
             // Wait, I didn't update getMapReports to expose reportType, eventDate, etc.

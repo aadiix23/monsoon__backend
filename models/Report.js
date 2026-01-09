@@ -46,6 +46,12 @@ const ReportSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    userName: {
+        type: String
+    },
+    userPhone: {
+        type: String
+    },
     createdAt: {
         type: Date,
         default: Date.now

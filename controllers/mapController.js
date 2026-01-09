@@ -1,4 +1,5 @@
 const Report = require('../models/Report');
+const User = require('../models/User');
 
 exports.getMapReports = async (req, res) => {
     try {
@@ -14,6 +15,11 @@ exports.getMapReports = async (req, res) => {
                     severity: report.severity,
                     imageUrl: report.imageUrl,
                     description: report.description,
+                    reportType: report.reportType,
+                    eventDate: report.eventDate,
+                    eventTime: report.eventTime,
+                    userName: report.userName,
+                    userPhone: report.userPhone,
                     timestamp: report.createdAt,
                     user: report.user // Optional: Expose user ID
                 }
@@ -145,6 +151,12 @@ exports.createReport = async (req, res) => {
             return res.status(400).json({ error: 'Report Type must be one of: Drainage Block, Water Log' });
         }
 
+        // Fetch user details
+        const user = await User.findById(req.user.id);
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
         const newReport = new Report({
             user: req.user.id, // Authenticated User ID
             location: {
@@ -156,7 +168,9 @@ exports.createReport = async (req, res) => {
             imageUrl,
             reportType,
             eventDate,
-            eventTime
+            eventTime,
+            userName: user.name,
+            userPhone: user.phoneNumber
         });
 
         await newReport.save();
