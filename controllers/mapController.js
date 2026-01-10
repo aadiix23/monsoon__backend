@@ -146,10 +146,11 @@ exports.getMapHotspots = async (req, res) => {
                     radius_meters: CLUSTER_RADIUS_METERS
                 }
             };
-        });
+        }).filter(hotspot => hotspot.properties.report_count >= 5);
 
         res.json({
             type: "FeatureCollection",
+            totalHotspots: hotspots.length,
             features: hotspots
         });
 
