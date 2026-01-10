@@ -74,82 +74,86 @@ function getDistance(lat1, lon1, lat2, lon2) {
     return R * c;
 }
 
-exports.getMapHotspots = async (req, res) => {
-    try {
-        const reports = await Report.find();
+// Helper: Logic to identify hotspots
+const calculateHotspots = async () => {
+    const reports = await Report.find();
 
-        // Simple clustering logic
-        const CLUSTER_RADIUS_METERS = 500;
-        const clusters = [];
+    // Simple clustering logic
+    const CLUSTER_RADIUS_METERS = 500;
+    const clusters = [];
 
-        for (const report of reports) {
-            // Extract lat/lon from GeoJSON coordinates [lon, lat]
-            const rLon = report.location.coordinates[0];
-            const rLat = report.location.coordinates[1];
+    for (const report of reports) {
+        // Extract lat/lon from GeoJSON coordinates [lon, lat]
+        const rLon = report.location.coordinates[0];
+        const rLat = report.location.coordinates[1];
 
-            let addedToCluster = false;
+        let addedToCluster = false;
 
-            for (const cluster of clusters) {
-                const cLon = cluster.points[0].location.coordinates[0];
-                const cLat = cluster.points[0].location.coordinates[1];
+        for (const cluster of clusters) {
+            const cLon = cluster.points[0].location.coordinates[0];
+            const cLat = cluster.points[0].location.coordinates[1];
 
-                const dist = getDistance(rLat, rLon, cLat, cLon);
+            const dist = getDistance(rLat, rLon, cLat, cLon);
 
-                if (dist <= CLUSTER_RADIUS_METERS) {
-                    cluster.points.push(report);
-                    addedToCluster = true;
-                    break;
-                }
-            }
-
-            if (!addedToCluster) {
-                clusters.push({
-                    points: [report]
-                });
+            if (dist <= CLUSTER_RADIUS_METERS) {
+                cluster.points.push(report);
+                addedToCluster = true;
+                break;
             }
         }
 
-        // Process clusters into GeoJSON
-        const hotspots = clusters.map(cluster => {
-            const count = cluster.points.length;
+        if (!addedToCluster) {
+            clusters.push({
+                points: [report]
+            });
+        }
+    }
 
-            // Calculate Centroid
-            let sumLat = 0, sumLon = 0;
-            let hasHighSeverity = false;
+    // Process clusters into GeoJSON
+    return clusters.map(cluster => {
+        const count = cluster.points.length;
 
-            for (const p of cluster.points) {
-                sumLon += p.location.coordinates[0];
-                sumLat += p.location.coordinates[1];
-                if (p.severity === 'High') hasHighSeverity = true;
+        // Calculate Centroid
+        let sumLat = 0, sumLon = 0;
+        let hasHighSeverity = false;
+
+        for (const p of cluster.points) {
+            sumLon += p.location.coordinates[0];
+            sumLat += p.location.coordinates[1];
+            if (p.severity === 'High') hasHighSeverity = true;
+        }
+
+        const centerLat = sumLat / count;
+        const centerLon = sumLon / count;
+
+        // Determine Cluster Severity
+        let severity = 'Low';
+        if (count > 40) {
+            severity = 'High';
+        } else if (count > 15) {
+            severity = 'Medium';
+        } else {
+            severity = 'Low';
+        }
+
+        return {
+            type: "Feature",
+            geometry: {
+                type: "Point",
+                coordinates: [centerLon, centerLat]
+            },
+            properties: {
+                report_count: count,
+                severity: severity,
+                radius_meters: CLUSTER_RADIUS_METERS
             }
+        };
+    }).filter(hotspot => hotspot.properties.report_count >= 5);
+};
 
-            const centerLat = sumLat / count;
-            const centerLon = sumLon / count;
-
-            // Determine Cluster Severity
-            let severity = 'Low';
-            if (count > 40) {
-                severity = 'High';
-            } else if (count > 15) {
-                severity = 'Medium';
-            } else {
-                severity = 'Low';
-            }
-
-            return {
-                type: "Feature",
-                geometry: {
-                    type: "Point",
-                    coordinates: [centerLon, centerLat]
-                },
-                properties: {
-                    report_count: count,
-                    severity: severity,
-                    radius_meters: CLUSTER_RADIUS_METERS
-                }
-            };
-        }).filter(hotspot => hotspot.properties.report_count >= 5);
-
+exports.getMapHotspots = async (req, res) => {
+    try {
+        const hotspots = await calculateHotspots();
         res.json({
             type: "FeatureCollection",
             totalHotspots: hotspots.length,
@@ -159,6 +163,93 @@ exports.getMapHotspots = async (req, res) => {
     } catch (err) {
         console.error('Error fetching hotspots:', err);
         res.status(500).json({ error: 'Server error fetching hotspots' });
+    }
+};
+
+exports.getFutureHotspots = async (req, res) => {
+    try {
+        const hotspots = await calculateHotspots();
+
+        // Enhance hotspots with weather prediction
+        const activeFutureHotspots = [];
+
+        // Sequential fetch to avoid network congestion/timeouts
+        for (const hotspot of hotspots) {
+            const [lon, lat] = hotspot.geometry.coordinates;
+            const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=rain&timezone=auto&forecast_days=1`;
+
+            let enhancedHotspot = { ...hotspot };
+
+            try {
+                console.log('Fetching weather forecast for:', url);
+                // Add explicit timeout to fail fast
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+
+                const response = await fetch(url, {
+                    headers: { 'User-Agent': 'MonsoonMap/1.0' },
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const hourlyRain = data.hourly.rain || [];
+
+                    const maxIntensity = Math.max(...hourlyRain);
+                    const totalRain = hourlyRain.reduce((a, b) => a + b, 0);
+
+                    let prediction = 'Low Risk';
+                    let message = 'No significant rain expected';
+
+                    if (maxIntensity >= 7.6 || totalRain >= 50) {
+                        prediction = 'High Risk';
+                        message = 'Heavy rainfall expected. High risk of logging.';
+                    } else if (maxIntensity >= 2.5) {
+                        prediction = 'Medium Risk';
+                        message = 'Moderate rainfall expected.';
+                    }
+
+                    enhancedHotspot.properties = {
+                        ...hotspot.properties,
+                        future_prediction: prediction,
+                        prediction_message: message,
+                        forecast: {
+                            max_intensity_mm_hr: maxIntensity,
+                            total_rain_24h: parseFloat(totalRain.toFixed(2))
+                        }
+                    };
+                } else {
+                    console.warn(`Weather API Error ${response.status} for ${lat},${lon}`);
+                    enhancedHotspot.properties = {
+                        ...hotspot.properties,
+                        future_prediction: 'Unavailable',
+                        prediction_message: 'Weather service unavailable',
+                        forecast: null
+                    };
+                }
+
+            } catch (e) {
+                console.error(`Error fetching weather for ${lat},${lon}:`, e.message);
+                enhancedHotspot.properties = {
+                    ...hotspot.properties,
+                    future_prediction: 'Unavailable',
+                    prediction_message: 'Weather check failed',
+                    forecast: null
+                };
+            }
+            activeFutureHotspots.push(enhancedHotspot);
+        }
+
+        res.json({
+            type: "FeatureCollection",
+            totalFutureHotspots: activeFutureHotspots.length,
+            features: activeFutureHotspots
+        });
+
+    } catch (err) {
+        console.error('Error fetching future hotspots:', err);
+        res.status(500).json({ error: 'Server error fetching future hotspots' });
     }
 };
 
