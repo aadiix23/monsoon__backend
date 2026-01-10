@@ -1,5 +1,6 @@
 const Report = require('../models/Report');
 const User = require('../models/User');
+const Notification = require('../models/Notification');
 
 // Helper to clear redundancy
 const fetchAndFormatReports = async (filter = {}, excludeImage = false) => {
@@ -293,6 +294,17 @@ exports.createReport = async (req, res) => {
         });
 
         await newReport.save();
+
+        // Create Notification
+        try {
+            const notification = new Notification({
+                message: `New ${reportType} report submitted by ${user.name} at ${eventTime}, ${eventDate}`,
+                relatedReport: newReport._id
+            });
+            await notification.save();
+        } catch (notifErr) {
+            console.error('Error creating notification:', notifErr);
+        }
 
         res.status(201).json({
             message: 'Report submitted successfully',
