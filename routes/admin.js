@@ -10,4 +10,7 @@ router.post('/login', adminController.login);
 router.get('/reports', adminAuth, adminController.getAdminReports);
 router.get('/notifications', adminAuth, adminController.getAdminNotifications);
 
+// @route   GET /admin/stats
+router.get('/dashboard-stats', adminAuth, adminController.getDashboardStats);
+
 module.exports = router;

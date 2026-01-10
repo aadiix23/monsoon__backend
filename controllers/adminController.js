@@ -1,5 +1,6 @@
 const Admin = require('../models/Admin');
 const Report = require('../models/Report');
+const ArchivedReport = require('../models/ArchivedReport');
 const Notification = require('../models/Notification');
 const jwt = require('jsonwebtoken');
 
@@ -86,5 +87,24 @@ exports.getAdminNotifications = async (req, res) => {
     } catch (err) {
         console.error('Error fetching admin notifications:', err);
         res.status(500).json({ error: 'Server error fetching notifications' });
+    }
+};
+
+// Get Dashboard Stats
+exports.getDashboardStats = async (req, res) => {
+    try {
+        const completedReports = await ArchivedReport.countDocuments();
+        const ongoingReports = await Report.countDocuments({ status: 'Ongoing' });
+        const pendingReports = await Report.countDocuments({ status: 'Pending' }); // Active but not ongoing
+        const totalReports = completedReports + ongoingReports + pendingReports;
+
+        res.json({
+            totalReports,
+            completedReports,
+            ongoingReports
+        });
+    } catch (err) {
+        console.error('Error fetching dashboard stats:', err);
+        res.status(500).json({ error: 'Server error fetching stats' });
     }
 };
