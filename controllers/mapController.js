@@ -128,10 +128,12 @@ exports.getMapHotspots = async (req, res) => {
 
             // Determine Cluster Severity
             let severity = 'Low';
-            if (count >= 5 || hasHighSeverity) {
+            if (count > 40) {
                 severity = 'High';
-            } else if (count >= 3) {
+            } else if (count > 15) {
                 severity = 'Medium';
+            } else {
+                severity = 'Low';
             }
 
             return {
