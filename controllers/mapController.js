@@ -241,6 +241,9 @@ exports.getFutureHotspots = async (req, res) => {
                 };
             }
             activeFutureHotspots.push(enhancedHotspot);
+
+            // Add a small delay to respect API Rate Limits (avoid 429)
+            await new Promise(resolve => setTimeout(resolve, 1000));
         }
 
         res.json({
