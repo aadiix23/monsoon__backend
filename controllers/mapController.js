@@ -186,10 +186,10 @@ exports.getFutureHotspots = async (req, res) => {
                 console.log('Fetching weather forecast for:', url);
                 // Add explicit timeout to fail fast
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+                const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
 
                 const response = await fetch(url, {
-                    headers: { 'User-Agent': 'MonsoonMap/1.0' },
+                    headers: { 'User-Agent': 'MonsoonMap/1.0 (contact@monsoonmap.com)' },
                     signal: controller.signal
                 });
                 clearTimeout(timeoutId);
