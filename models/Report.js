@@ -18,6 +18,9 @@ const ReportSchema = new mongoose.Schema({
             required: true
         }
     },
+    address: {
+        type: String // Full address fetched from Nominatim
+    },
     severity: {
         type: String,
         enum: ['Low', 'Medium', 'High'],
@@ -54,7 +57,7 @@ const ReportSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['Pending', 'Verified', 'Resolved', 'Dismissed'],
+        enum: ['Pending', 'Ongoing', 'Completed'],
         default: 'Pending'
     },
     createdAt: {

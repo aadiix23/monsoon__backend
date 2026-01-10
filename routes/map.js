@@ -12,4 +12,8 @@ router.get('/future-hotspots', mapController.getFutureHotspots);
 router.get('/future-hotspot', mapController.getFutureHotspots);
 router.post('/report', auth, mapController.createReport);
 
+// @route   PATCH /map/reports/:id/status
+// @desc    Update report status
+router.patch('/reports/:id/status', mapController.updateReportStatus);
+
 module.exports = router;

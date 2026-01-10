@@ -1,6 +1,7 @@
 const Report = require('../models/Report');
 const User = require('../models/User');
 const Notification = require('../models/Notification');
+const ArchivedReport = require('../models/ArchivedReport');
 
 // In-Memory Cache for Weather Data (Key: "lat,lon", Value: { data: result, timestamp: Date.now() })
 const weatherCache = new Map();
@@ -288,7 +289,7 @@ exports.getFutureHotspots = async (req, res) => {
 
 exports.createReport = async (req, res) => {
     try {
-        const { lat, lon, severity, description, imageUrl, reportType, eventDate, eventTime } = req.body;
+        const { lat, lon, severity, description, imageUrl, reportType, eventDate, eventTime, address } = req.body; // Added address
 
         // Validation
         if (lat === undefined || lon === undefined || !severity || !reportType || !eventDate || !eventTime) {
@@ -309,12 +310,33 @@ exports.createReport = async (req, res) => {
             return res.status(404).json({ error: 'User not found' });
         }
 
+        // Reverse Geocoding (Nominatim) - Only if address not provided
+        let addressStr = address; // Use provided address
+        if (!addressStr) {
+            addressStr = `Lat: ${lat}, Lon: ${lon}`;
+            try {
+                const geocodeUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`;
+                const geoRes = await fetch(geocodeUrl, {
+                    headers: { 'User-Agent': 'MonsoonMap/1.0 (contact@monsoonmap.com)' }
+                });
+                if (geoRes.ok) {
+                    const geoData = await geoRes.json();
+                    if (geoData && geoData.display_name) {
+                        addressStr = geoData.display_name;
+                    }
+                }
+            } catch (error) {
+                console.error('Geocoding error:', error.message);
+            }
+        }
+
         const newReport = new Report({
             user: req.user.id, // Authenticated User ID
             location: {
                 type: 'Point',
                 coordinates: [lon, lat] // [lon, lat] for GeoJSON
             },
+            address: addressStr,
             severity,
             description,
             imageUrl,
@@ -346,5 +368,44 @@ exports.createReport = async (req, res) => {
     } catch (err) {
         console.error('Error submitting report:', err);
         res.status(500).json({ error: 'Server error submitting report' });
+    }
+};
+exports.updateReportStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+
+        if (!['Pending', 'Ongoing', 'Completed'].includes(status)) {
+            return res.status(400).json({ error: 'Invalid status. Allowed: Pending, Ongoing, Completed' });
+        }
+
+        const report = await Report.findById(id);
+        if (!report) {
+            return res.status(404).json({ error: 'Report not found' });
+        }
+
+        if (status === 'Completed') {
+            // Archive logic
+            const archivedData = report.toObject();
+            delete archivedData._id;
+            delete archivedData.__v;
+            archivedData.status = 'Completed';
+            archivedData.originalCreatedAt = report.createdAt;
+            archivedData.archivedAt = new Date();
+
+            const archivedReport = new ArchivedReport(archivedData);
+            await archivedReport.save();
+            await Report.findByIdAndDelete(id); // Remove from active
+
+            return res.json({ message: 'Report completed and archived successfully' });
+        } else {
+            // Normal update
+            report.status = status;
+            await report.save();
+            return res.json({ message: 'Report status updated', report });
+        }
+    } catch (err) {
+        console.error('Error updating report status:', err);
+        res.status(500).json({ error: 'Server error updating status' });
     }
 };

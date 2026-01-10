@@ -52,6 +52,7 @@ exports.getAdminReports = async (req, res) => {
                 geometry: report.location,
                 properties: {
                     id: report._id,
+                    address: report.address || `Lat: ${report.location.coordinates[1]}, Lon: ${report.location.coordinates[0]}`,
                     severity: report.severity,
                     imageUrl: report.imageUrl,
                     description: report.description,
