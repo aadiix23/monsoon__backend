@@ -79,7 +79,8 @@ exports.getAdminReports = async (req, res) => {
 exports.getAdminNotifications = async (req, res) => {
     try {
         const notifications = await Notification.find()
-            .sort({ createdAt: -1 });
+            .sort({ createdAt: -1 })
+            .populate('relatedReport', 'reportType address'); // Only keep reportType and address
 
         res.json(notifications);
     } catch (err) {
