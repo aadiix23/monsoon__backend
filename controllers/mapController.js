@@ -21,6 +21,7 @@ const fetchAndFormatReports = async (filter = {}, excludeImage = false) => {
                 eventTime: report.eventTime,
                 userName: report.userName,
                 userPhone: report.userPhone,
+                status: report.status,
                 timestamp: report.createdAt,
                 user: report.user // Optional: Expose user ID
             }

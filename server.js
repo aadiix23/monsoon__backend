@@ -39,11 +39,13 @@ const weatherRoutes = require('./routes/weather');
 const mapRoutes = require('./routes/map');
 const uploadRoutes = require('./routes/upload');
 const notificationRoutes = require('./routes/notification');
+const adminRoutes = require('./routes/admin');
 app.use('/auth', authRoutes);
 app.use('/weather', weatherRoutes);
 app.use('/map', mapRoutes);
 app.use('/upload', uploadRoutes);
 app.use('/notifications', notificationRoutes);
+app.use('/admin', adminRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

@@ -52,6 +52,11 @@ const ReportSchema = new mongoose.Schema({
     userPhone: {
         type: String
     },
+    status: {
+        type: String,
+        enum: ['Pending', 'Verified', 'Resolved', 'Dismissed'],
+        default: 'Pending'
+    },
     createdAt: {
         type: Date,
         default: Date.now
