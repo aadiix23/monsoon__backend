@@ -2,6 +2,10 @@ const Report = require('../models/Report');
 const User = require('../models/User');
 const Notification = require('../models/Notification');
 
+// In-Memory Cache for Weather Data (Key: "lat,lon", Value: { data: result, timestamp: Date.now() })
+const weatherCache = new Map();
+const CACHE_TTL = 3600 * 1000; // 1 Hour in milliseconds
+
 // Helper to clear redundancy
 const fetchAndFormatReports = async (filter = {}, excludeImage = false) => {
     const reports = await Report.find(filter);
@@ -178,9 +182,26 @@ exports.getFutureHotspots = async (req, res) => {
         // Sequential fetch to avoid network congestion/timeouts
         for (const hotspot of hotspots) {
             const [lon, lat] = hotspot.geometry.coordinates;
-            const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=rain&timezone=auto&forecast_days=1`;
-
             let enhancedHotspot = { ...hotspot };
+            const cacheKey = `${lat},${lon}`;
+
+            // 1. Check Cache
+            if (weatherCache.has(cacheKey)) {
+                const cachedEntry = weatherCache.get(cacheKey);
+                if (Date.now() - cachedEntry.timestamp < CACHE_TTL) {
+                    // Cache Hit
+                    enhancedHotspot.properties = {
+                        ...hotspot.properties,
+                        ...cachedEntry.data // Reuse cached simple properties
+                    };
+                    activeFutureHotspots.push(enhancedHotspot);
+                    continue; // Skip fetch and delay
+                } else {
+                    weatherCache.delete(cacheKey); // Expired
+                }
+            }
+
+            const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=rain&timezone=auto&forecast_days=1`;
 
             try {
                 console.log('Fetching weather forecast for:', url);
@@ -212,14 +233,21 @@ exports.getFutureHotspots = async (req, res) => {
                         message = 'Moderate rainfall expected.';
                     }
 
-                    enhancedHotspot.properties = {
-                        ...hotspot.properties,
+                    const weatherData = {
                         future_prediction: prediction,
                         prediction_message: message,
                         forecast: {
                             max_intensity_mm_hr: maxIntensity,
                             total_rain_24h: parseFloat(totalRain.toFixed(2))
                         }
+                    };
+
+                    // Save to Cache
+                    weatherCache.set(cacheKey, { data: weatherData, timestamp: Date.now() });
+
+                    enhancedHotspot.properties = {
+                        ...hotspot.properties,
+                        ...weatherData
                     };
                 } else {
                     console.warn(`Weather API Error ${response.status} for ${lat},${lon}`);
