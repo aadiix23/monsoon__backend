@@ -12,4 +12,15 @@ router.post('/signup', authController.signup);
 // @access  Public
 router.post('/login', authController.login);
 
+// @route   GET /auth/profile
+// @desc    Get user profile
+// @access  Private
+const auth = require('../middleware/auth');
+router.get('/profile', auth, authController.getProfile);
+
+// @route   POST /auth/logout
+// @desc    Logout user
+// @access  Private
+router.post('/logout', auth, authController.logout);
+
 module.exports = router;

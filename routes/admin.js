@@ -6,6 +6,10 @@ const adminAuth = require('../middleware/adminAuth');
 
 router.post('/login', adminController.login);
 
+// @route   POST /admin/logout
+// @desc    Logout admin
+router.post('/logout', adminAuth, adminController.logout);
+
 
 router.get('/reports', adminAuth, adminController.getAdminReports);
 router.get('/notifications', adminAuth, adminController.getAdminNotifications);

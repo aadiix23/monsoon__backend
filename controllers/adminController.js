@@ -105,3 +105,13 @@ exports.getDashboardStats = async (req, res) => {
         res.status(500).json({ error: 'Server error fetching stats' });
     }
 };
+
+exports.logout = async (req, res) => {
+    try {
+        // Stateless logout
+        res.json({ msg: 'Admin logged out successfully' });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+};

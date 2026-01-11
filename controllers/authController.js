@@ -2,7 +2,7 @@ const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 
 exports.signup = async (req, res) => {
-    const { name, phoneNumber, otp } = req.body;
+    const { name, phoneNumber, otp, email } = req.body;
 
 
     if (!name || !phoneNumber || !otp) {
@@ -24,7 +24,8 @@ exports.signup = async (req, res) => {
 
         const newUser = new User({
             name,
-            phoneNumber
+            phoneNumber,
+            email
         });
 
         const savedUser = await newUser.save();
@@ -46,7 +47,8 @@ exports.signup = async (req, res) => {
                     user: {
                         id: savedUser.id,
                         name: savedUser.name,
-                        phoneNumber: savedUser.phoneNumber
+                        phoneNumber: savedUser.phoneNumber,
+                        email: savedUser.email || ""
                     }
                 });
             }
@@ -93,11 +95,40 @@ exports.login = async (req, res) => {
                     user: {
                         id: user.id,
                         name: user.name,
-                        phoneNumber: user.phoneNumber
+                        phoneNumber: user.phoneNumber,
+                        email: user.email || ""
                     }
                 });
             }
         );
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+};
+
+exports.getProfile = async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id).select('-password');
+        if (!user) {
+            return res.status(404).json({ msg: 'User not found' });
+        }
+        res.json({
+            name: user.name,
+            email: user.email || "",
+            phoneNumber: user.phoneNumber
+        });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+};
+
+exports.logout = async (req, res) => {
+    try {
+        // Since we are using stateless JWT, the server doesn't need to do anything
+        // The client should remove the token
+        res.json({ msg: 'Logged out successfully' });
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');

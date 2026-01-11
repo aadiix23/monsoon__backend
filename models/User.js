@@ -10,6 +10,10 @@ const UserSchema = new mongoose.Schema({
         required: true,
         unique: true
     },
+    email: {
+        type: String,
+        required: false
+    },
     createdAt: {
         type: Date,
         default: Date.now
