@@ -7,7 +7,6 @@ const ArchivedReport = require('../models/ArchivedReport');
 const weatherCache = new Map();
 const CACHE_TTL = 3600 * 1000; // 1 Hour in milliseconds
 
-// Helper to clear redundancy
 const fetchAndFormatReports = async (filter = {}, excludeImage = false) => {
     const reports = await Report.find(filter);
 
@@ -46,7 +45,6 @@ exports.getMapReports = async (req, res) => {
 
 exports.getWaterLogReports = async (req, res) => {
     try {
-        // Pass true to exclude imageUrl
         const geoJson = await fetchAndFormatReports({ reportType: 'Water Log' }, true);
         res.json(geoJson);
     } catch (err) {
@@ -205,7 +203,7 @@ exports.getFutureHotspots = async (req, res) => {
             const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=rain&timezone=auto&forecast_days=1`;
 
             try {
-                console.log('Fetching weather forecast for:', url);
+
                 // Add explicit timeout to fail fast
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
@@ -289,9 +287,9 @@ exports.getFutureHotspots = async (req, res) => {
 
 exports.createReport = async (req, res) => {
     try {
-        const { lat, lon, severity, description, imageUrl, reportType, eventDate, eventTime, address } = req.body; // Added address
+        const { lat, lon, severity, description, imageUrl, reportType, eventDate, eventTime, address } = req.body;
 
-        // Validation
+
         if (lat === undefined || lon === undefined || !severity || !reportType || !eventDate || !eventTime) {
             return res.status(400).json({ error: 'Latitude, Longitude, Severity, Report Type, Date, and Time are required' });
         }
@@ -304,14 +302,14 @@ exports.createReport = async (req, res) => {
             return res.status(400).json({ error: 'Report Type must be one of: Drainage Block, Water Log' });
         }
 
-        // Fetch user details
+
         const user = await User.findById(req.user.id);
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
         }
 
         // Reverse Geocoding (Nominatim) - Only if address not provided
-        let addressStr = address; // Use provided address
+        let addressStr = address;
         if (!addressStr) {
             addressStr = `Lat: ${lat}, Lon: ${lon}`;
             try {
@@ -331,7 +329,7 @@ exports.createReport = async (req, res) => {
         }
 
         const newReport = new Report({
-            user: req.user.id, // Authenticated User ID
+            user: req.user.id,
             location: {
                 type: 'Point',
                 coordinates: [lon, lat] // [lon, lat] for GeoJSON
@@ -349,7 +347,7 @@ exports.createReport = async (req, res) => {
 
         await newReport.save();
 
-        // Create Notification
+
         try {
             const notification = new Notification({
                 message: `New ${reportType} report submitted by ${user.name} at ${eventTime}, ${eventDate}`,

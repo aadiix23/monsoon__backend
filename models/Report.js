@@ -38,11 +38,7 @@ const ReportSchema = new mongoose.Schema({
         required: true
     },
     eventDate: {
-        type: String, // Or Date, but user asked for date and time input, String is often safer for raw input unless parsing is desired immediately. Let's use String for now based on "take this as a input". Using String for simplicity unless Date object is strictly better. Actually, standard practice for APIs is usually ISO strings or similar. Let's stick to String to store exactly what user sends or simple Date. Let's use String for now to be flexible or Date if we want to enforce. 
-        // "take the input of date and time".
-        // Let's use Date type for eventDate and String for eventTime to keep it simple, or best practice: save both as Date objects or split.
-        // Let's go with String for both for flexibility as per "take this as a input" which implies raw.
-        // Actually, let's use String for both to avoid parsing headaches for now.
+        type: String,
         required: true
     },
     eventTime: {

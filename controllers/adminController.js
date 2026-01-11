@@ -9,7 +9,7 @@ exports.login = async (req, res) => {
     const { username, password } = req.body;
 
     try {
-        // Authenticate user
+
         const admin = await Admin.findOne({ username });
         if (!admin) {
             return res.status(400).json({ msg: 'Invalid credentials' });
@@ -20,7 +20,7 @@ exports.login = async (req, res) => {
             return res.status(400).json({ msg: 'Invalid credentials' });
         }
 
-        // Create token with isAdmin flag
+
         const payload = {
             id: admin._id,
             isAdmin: true
@@ -41,7 +41,6 @@ exports.login = async (req, res) => {
     }
 };
 
-// Get All Reports (Admin View)
 exports.getAdminReports = async (req, res) => {
     try {
         const reports = await Report.find().sort({ createdAt: -1 });
@@ -76,7 +75,6 @@ exports.getAdminReports = async (req, res) => {
     }
 };
 
-// Get All Notifications (Admin View)
 exports.getAdminNotifications = async (req, res) => {
     try {
         const notifications = await Notification.find()
@@ -90,7 +88,6 @@ exports.getAdminNotifications = async (req, res) => {
     }
 };
 
-// Get Dashboard Stats
 exports.getDashboardStats = async (req, res) => {
     try {
         const completedReports = await ArchivedReport.countDocuments();

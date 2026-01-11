@@ -4,24 +4,24 @@ const jwt = require('jsonwebtoken');
 exports.signup = async (req, res) => {
     const { name, phoneNumber, otp } = req.body;
 
-    // Simple validation
+
     if (!name || !phoneNumber || !otp) {
         return res.status(400).json({ msg: 'Please enter all fields' });
     }
 
-    // Validate OTP
+
     if (otp !== '000111') {
         return res.status(400).json({ msg: 'Invalid OTP' });
     }
 
     try {
-        // Check for existing user
+
         const existingUser = await User.findOne({ phoneNumber });
         if (existingUser) {
             return res.status(400).json({ msg: 'User already exists' });
         }
 
-        // Create new user
+
         const newUser = new User({
             name,
             phoneNumber
@@ -29,7 +29,7 @@ exports.signup = async (req, res) => {
 
         const savedUser = await newUser.save();
 
-        // Create token
+
         const payload = {
             id: savedUser.id
         };
@@ -60,24 +60,24 @@ exports.signup = async (req, res) => {
 exports.login = async (req, res) => {
     const { phoneNumber, otp } = req.body;
 
-    // Validate input
+
     if (!phoneNumber || !otp) {
         return res.status(400).json({ msg: 'Please enter all fields' });
     }
 
-    // Validate OTP
+
     if (otp !== '000111') {
         return res.status(400).json({ msg: 'Invalid OTP' });
     }
 
     try {
-        // Check for user
+
         const user = await User.findOne({ phoneNumber });
         if (!user) {
             return res.status(400).json({ msg: 'User does not exist' });
         }
 
-        // Create token
+
         const payload = {
             id: user.id
         };
